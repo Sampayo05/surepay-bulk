@@ -17,6 +17,7 @@ index.listen(port, () => {
 ztmKafkaConnector().catch((error) => {
     logger.error("Kafka handler error: " + (error?.message || String(error)));
 });
+
 process.on("exit", (code: number) => {
     logger.error(`Process exit with code ${code}`);
 });
