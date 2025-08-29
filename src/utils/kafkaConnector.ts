@@ -10,9 +10,10 @@ const {
     KAFKA_TOPIC,
     KAFKA_GROUP_ID,
     SUREPAY_URL,
+    SUREPAY_VERSION,
 } = process.env;
 
-if (!KAFKA_CLIENT_ID || !KAFKA_HOST || !KAFKA_PORT || !KAFKA_TOPIC || !KAFKA_GROUP_ID || !SUREPAY_URL) {
+if (!KAFKA_CLIENT_ID || !KAFKA_HOST || !KAFKA_PORT || !KAFKA_TOPIC || !KAFKA_GROUP_ID || !SUREPAY_URL|| !SUREPAY_VERSION) {
     logger.error(
         "[Kafka] Missing env vars: KAFKA_CLIENT_ID, KAFKA_HOST, KAFKA_PORT, KAFKA_TOPIC, KAFKA_GROUP_ID, SUREPAY_URL"
     );
@@ -39,8 +40,16 @@ export async function ztmKafkaConnector(): Promise<void> {
 
     // Narrow SUREPAY_URL to a string before use
     const surepayUrl = SUREPAY_URL;
+    const surepayVersion = SUREPAY_VERSION;
+
     if (!surepayUrl) {
         logger.error("[Kafka] SUREPAY_URL is not set; aborting consumer start.");
+        started = false;
+        return;
+    }
+
+    if (!surepayVersion) {
+        logger.error("[Kafka] SUREPAY_VERSION is not set; aborting consumer start.");
         started = false;
         return;
     }
@@ -62,7 +71,7 @@ export async function ztmKafkaConnector(): Promise<void> {
                 try {
                     const valueStr = message.value ? message.value.toString() : "";
 
-                    await subscribeToZeroRating(surepayUrl, valueStr, 1048576, "ZTM", "219");
+                    await subscribeToZeroRating(surepayUrl, valueStr, 1048576, "ZTM", surepayVersion);
                 } catch (err: any) {
                     logger.error(
                         `[Kafka] Error processing message on ${topic}[p${partition}] offset=${message.offset} :: ${
