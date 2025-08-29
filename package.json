@@ -1,0 +1,19 @@
+{
+  "name": "surepay-bulk",
+  "version": "1.0.0",
+  "description": "This project will handle all surepay bulk call in a generic way",
+  "license": "ISC",
+  "author": "Igoroto",
+  "type": "commonjs",
+  "main": "apps.js",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  }
+}
