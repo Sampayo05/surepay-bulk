@@ -150,11 +150,8 @@ export async function defaultKafkaConnector(): Promise<void> {
                         logger.info("batchToInsertFailure[0].msisdns.length ==> " + batchToInsertFailure[0]!.msisdns.length);
                         logger.info("batchToInsert[0].msisdns.length ==> " + batchToInsert[0]!.msisdns.length);
 
-                        if (batchToInsert[0]!.msisdns.length >= BATCH_SIZE) {
+                        if ((batchToInsert[0]!.msisdns.length + batchToInsertFailure[0]!.msisdns.length) >= BATCH_SIZE) {
                             await flushBatchSuccess();
-                        }
-
-                        if (batchToInsertFailure[0]!.msisdns.length >= BATCH_SIZE) {
                             await flushBatchFailure();
                         }
                     }
