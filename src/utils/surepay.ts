@@ -120,7 +120,6 @@ export async function subscribeToLifecycle(
         const resultCode: string | undefined = header?.$?.result_code;
         const additionalInfo: string | undefined = header?.$?.additional_info;
 
-
         if (resultCode === "00" && additionalInfo === "SUCCESS") {
             logger.info(
                 `Successfully subscribeToLifecycle for msisdn ${msisdn}`
