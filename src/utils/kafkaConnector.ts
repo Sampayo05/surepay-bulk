@@ -23,7 +23,7 @@ if (!KAFKA_CLIENT_ID || !KAFKA_HOST || !KAFKA_PORT || !KAFKA_TOPIC_DEFAULT || !K
 }
 
 const kafka = new Kafka({
-    clientId: KAFKA_CLIENT_ID,
+    clientId: KAFKA_CLIENT_ID!,
     brokers: [`${KAFKA_HOST}:${KAFKA_PORT}`],
     logLevel: logLevel.NOTHING,
 });

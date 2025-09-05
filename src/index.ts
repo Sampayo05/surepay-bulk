@@ -1,7 +1,7 @@
 import express from 'express';
 import {logger} from './configs/logger'
 import { registerDefaultRoutes } from "./routes/defaultRoute";
-import { ztmKafkaConnector } from "./utils/kafkaConnector";
+import { defaultKafkaConnector } from "./utils/kafkaConnector";
 
 const index = express();
 const port = process.env.APP_PORT;
@@ -14,7 +14,7 @@ index.listen(port, () => {
     logger.info(`Start ${app_name} on port:${port} ${ Date.now().toString().slice(0, 9)}`);
 });
 
-ztmKafkaConnector().catch((error) => {
+defaultKafkaConnector().catch((error) => {
     logger.error("Kafka handler error: " + (error?.message || String(error)));
 });
 
