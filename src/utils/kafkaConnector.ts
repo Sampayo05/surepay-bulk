@@ -11,7 +11,7 @@ interface DWHRecord {
     msisdns: string[];
 }
 
-const BATCH_SIZE = 1000;
+const BATCH_SIZE = 500;
 const FLUSH_MS = 5000;
 
 let batchToInsert: DWHRecord[] = [{
@@ -170,16 +170,5 @@ export async function defaultKafkaConnector(): Promise<void> {
     } catch (e: any) {
         logger.error(`[Kafka] Consumer start error :: ${e?.message || e}`);
         started = false;
-    }
-}
-
-export async function stopDrawWinningsConnector(): Promise<void> {
-    try {
-        logger.info("[Kafka] Disconnecting consumer...");
-        await consumer.disconnect();
-        started = false;
-        logger.info("[Kafka] Consumer disconnected.");
-    } catch (e: any) {
-        logger.error(`[Kafka] Disconnect error :: ${e?.message || e}`);
     }
 }

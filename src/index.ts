@@ -20,6 +20,7 @@ defaultKafkaConnector().catch((error) => {
 
 process.on("exit", (code: number) => {
     logger.error(`Process exit with code ${code}`);
+    process.exit(1);
 });
 
 process.on("uncaughtException", (err: Error) => {
@@ -29,5 +30,4 @@ process.on("uncaughtException", (err: Error) => {
 
 process.on("unhandledRejection", (reason: unknown) => {
     logger.error("Unhandled Rejection: " + String(reason));
-    process.exit(1);
 });
