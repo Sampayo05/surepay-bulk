@@ -2,7 +2,7 @@
 import axios from "axios";
 import {parseStringPromise} from "xml2js";
 import {logger} from "../configs/logger";
-import dwhRepository from "../repositories/DwhRepository";
+import dwhRepository from "../repositories/dwhRepository";
 
 export async function subscribeToZeroRating(
     url: string,
