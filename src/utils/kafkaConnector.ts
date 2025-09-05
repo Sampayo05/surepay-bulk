@@ -72,6 +72,8 @@ export async function defaultKafkaConnector(): Promise<void> {
                 try {
                     const valueStr = message.value ? message.value.toString() : "";
 
+                    logger.debug('valueStr ==> ' + valueStr)
+
                     const jsonMessage = JSON.parse(valueStr);
 
                     if (jsonMessage.operation === 'ztm') {
