@@ -25,7 +25,7 @@ class Utilities {
 
     async insertIntoDWHDB(batch: DWHRecord[]): Promise<void> {
         for (const record of batch) {
-            logger.info(`Inserting row=${record.updateRow}, comment=${record.updateComments}, msisdn=${record.msisdns}`);
+            logger.info(`Inserting row=${record.updateRow}, comment=${record.updateComments}`);
             dwhRepository.updateMsisdnsValDateStatus(record.updateRow, record.updateComments, record.msisdns);
         }
     }
