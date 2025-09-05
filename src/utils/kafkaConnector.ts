@@ -11,7 +11,7 @@ interface DWHRecord {
     msisdns: string[];
 }
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 1000;
 const FLUSH_MS = 5000;
 
 let batchToInsert: DWHRecord[] = [{
