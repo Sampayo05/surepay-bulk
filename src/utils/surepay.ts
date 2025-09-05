@@ -2,6 +2,7 @@
 import axios from "axios";
 import {parseStringPromise} from "xml2js";
 import {logger} from "../configs/logger";
+import dwhRepository from "../repositories/DwhRepository";
 
 export async function subscribeToZeroRating(
     url: string,
@@ -10,7 +11,6 @@ export async function subscribeToZeroRating(
     bid: string,
     surepayVersion: string
 ): Promise<void> {
-logger.info('here')
     const requestBody = `<!DOCTYPE GatewayRequest SYSTEM "http://10.2.1.1:8081/ecgs/dtd/gateway.dtd">
 <GatewayRequest>
    <RequestHeader version="{{SUREPAY_VERSION}}"/>
@@ -69,6 +69,73 @@ logger.info('here')
         const data = error?.response?.data;
         logger.error(
             `Error in subscribeToZeroRating for ${msisdn} :: ${error?.message || error} :: status=${status} :: body=${data}`
+        );
+    }
+}
+
+export async function subscribeToLifecycle(
+    url: string,
+    msisdn: string | number,
+    surepayVersion: string
+): Promise<void> {
+    const requestBody = `<!DOCTYPE GatewayRequest SYSTEM "http://10.2.1.1:8081/ecgs/dtd/gateway.dtd">
+<GatewayRequest>
+<RequestHeader version="{{SUREPAY_VERSION}}"/>
+<SubscriberAccountInfo>
+<SubscriberID>{{msisdn}}</SubscriberID>
+</SubscriberAccountInfo>
+<QueryDataRequest Action="IMOM" OP="A" IMOMCommand="ADJ:BALANCE,MSISDN={{msisdn}},AMOUNT=0,ADJ=INCR,BAL=P,NO_LC=N,RECHARGE=N,CED_Set=90"/>
+</GatewayRequest>`;
+
+    const xmlData = requestBody
+        .replaceAll("{{MSISDN}}", msisdn.toString())
+        .replaceAll("{{SUREPAY_VERSION}}", surepayVersion);
+
+    logger.info('Surepay request subscribeToLifecycle ==> ' + xmlData);
+
+    try {
+        const response = await axios.post(url, xmlData, {
+            headers: {"Content-Type": "application/xml"},
+            timeout: 15_000,
+        });
+
+        if (response.status !== 200) {
+            logger.error(
+                `Surepay subscribeToLifecycle non-200 for ${msisdn} :: status=${response.status} :: body=${response.data}`
+            );
+            return;
+        }
+
+        const parsed = await parseStringPromise(String(response.data), {
+            explicitArray: true,
+            attrkey: "$",
+        });
+
+        const header = parsed?.GatewayResponse?.ResponseHeader?.[0];
+        const resultCode: string | undefined = header?.$?.result_code;
+        const additionalInfo: string | undefined = header?.$?.additional_info;
+
+        if (resultCode === "00" && additionalInfo === "SUCCESS") {
+            // await  dwhRepository.updateMsisdnValDateStatus(1, "SUCCESS", msisdn.toString());
+            logger.info(
+                `Successfully subscribeToLifecycle for msisdn ${msisdn}`
+            );
+        } else if (resultCode === "98" && additionalInfo === "FAILURE") {
+            // await  dwhRepository.updateMsisdnValDateStatus(-1, "SUCCESS", msisdn.toString());
+            logger.info(
+                `Failed subscribeToLifecycle for msisdn ${msisdn} :: body=${response.data}`
+            );
+        } else {
+            // await  dwhRepository.updateMsisdnValDateStatus(-1, "SUCCESS", msisdn.toString());
+            logger.error(
+                `Unexpected surepay response for ${msisdn} :: resultCode=${resultCode} :: additionalInfo=${additionalInfo} :: body=${response.data}`
+            );
+        }
+    } catch (error: any) {
+        const status = error?.response?.status;
+        const data = error?.response?.data;
+        logger.error(
+            `Error in subscribeToLifecycle for ${msisdn} :: ${error?.message || error} :: status=${status} :: body=${data}`
         );
     }
 }
