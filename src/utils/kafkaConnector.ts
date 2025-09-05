@@ -3,6 +3,56 @@ import {Kafka, logLevel, EachMessagePayload} from "kafkajs";
 import {logger} from "../configs/logger";
 import {subscribeToZeroRating} from "./surepay";
 import {subscribeToLifecycle} from "./surepay";
+import utilities from "./utilities";
+
+interface DWHRecord {
+    updateRow: number;
+    updateComments: string;
+    msisdns: string[];
+}
+
+const BATCH_SIZE = 5;
+const FLUSH_MS = 5000;
+
+let batchToInsert: DWHRecord[] = [{
+    updateRow: 1,
+    updateComments: 'SUCCESS',
+    msisdns: []
+}];
+
+let batchToInsertFailure: DWHRecord[] = [{
+    updateRow: -1,
+    updateComments: 'FAILURE',
+    msisdns: []
+}];
+
+let flushTimer: NodeJS.Timeout | null = null;
+
+async function flushBatchSuccess() {
+    if (batchToInsert.length === 0) return;
+    const snapshot = batchToInsert;
+    batchToInsert = [{
+        updateRow: 1,
+        updateComments: 'SUCCESS',
+        msisdns: []
+    }];
+    logger.info(`[BULK] to update ${snapshot.length} rows`);
+    utils.insertIntoDWHDB(snapshot);
+}
+
+async function flushBatchFailure() {
+    if (batchToInsertFailure.length === 0) return;
+    const snapshot = batchToInsertFailure;
+    batchToInsertFailure = [{
+        updateRow: -1,
+        updateComments: 'FAILURE',
+        msisdns: []
+    }];
+    logger.info(`[FAILED BULK] to update ${snapshot.length} rows`);
+    utils.insertIntoDWHDB(snapshot);
+}
+
+const utils = new utilities();
 
 const {
     KAFKA_CLIENT_ID,
@@ -23,7 +73,7 @@ if (!KAFKA_CLIENT_ID || !KAFKA_HOST || !KAFKA_PORT || !KAFKA_TOPIC_DEFAULT || !K
 }
 
 const kafka = new Kafka({
-    clientId: KAFKA_CLIENT_ID!,
+    clientId: KAFKA_CLIENT_ID || "diit",
     brokers: [`${KAFKA_HOST}:${KAFKA_PORT}`],
     logLevel: logLevel.NOTHING,
 });
@@ -72,18 +122,42 @@ export async function defaultKafkaConnector(): Promise<void> {
                 try {
                     const valueStr = message.value ? message.value.toString() : "";
 
-                    logger.debug('valueStr ==> ' + valueStr)
+                    logger.info('valueStr received ==> ' + valueStr)
 
-                    const jsonMessage = JSON.parse(valueStr);
+                    let jsonMessage: any;
+
+                    jsonMessage = JSON.parse(valueStr);
+
+                    if (typeof jsonMessage === "string") {
+                        jsonMessage = JSON.parse(jsonMessage); // double parse
+                    }
+
+                    logger.info('jsonMessage.operation ==> ' + jsonMessage.operation);
 
                     if (jsonMessage.operation === 'ztm') {
                         await subscribeToZeroRating(surepayUrl, jsonMessage.msisdn, 1048576, "ZTM", surepayVersion);
                     }
 
                     if (jsonMessage.operation === 'lifecycle') {
-                        await subscribeToLifecycle(surepayUrl, jsonMessage.msisdn, surepayVersion);
-                    }
+                        const res = await subscribeToLifecycle(surepayUrl, jsonMessage.msisdn, surepayVersion);
 
+                        if (res.updateRow === -1) {
+                            batchToInsertFailure[0]!.msisdns.push(res.msisdn);
+                        } else {
+                            batchToInsert[0]!.msisdns.push(res.msisdn);
+                        }
+
+                        logger.info("batchToInsertFailure[0].msisdns.length ==> " + batchToInsertFailure[0]!.msisdns.length);
+                        logger.info("batchToInsert[0].msisdns.length ==> " + batchToInsert[0]!.msisdns.length);
+
+                        if (batchToInsert[0]!.msisdns.length >= BATCH_SIZE) {
+                            await flushBatchSuccess();
+                        }
+
+                        if (batchToInsertFailure[0]!.msisdns.length >= BATCH_SIZE) {
+                            await flushBatchFailure();
+                        }
+                    }
 
                 } catch (err: any) {
                     logger.error(
