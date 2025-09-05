@@ -25,7 +25,6 @@ process.on("exit", (code: number) => {
 process.on("uncaughtException", (err: Error) => {
     logger.error("An error occurred: " + err.message);
     logger.error("Stack trace: " + err.stack);
-    process.exit(1);
 });
 
 process.on("unhandledRejection", (reason: unknown) => {
