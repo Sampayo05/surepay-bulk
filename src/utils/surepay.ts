@@ -8,7 +8,7 @@ const utils = new utilities();
 
 export async function subscribeToZeroRating(
     url: string,
-    msisdn: string,
+    msisdn: string | number,
     amount: number | string,
     bid: string,
     surepayVersion: string
@@ -23,7 +23,7 @@ export async function subscribeToZeroRating(
 </GatewayRequest>`;
 
     const xmlData = requestBody
-        .replaceAll("{{MSISDN}}", msisdn)
+        .replaceAll("{{MSISDN}}", '228' + utils.extractPhoneNumberPart(msisdn.toString()))
         .replaceAll("{{TRANS_ID}}", 'SB' + msisdn + Date.now().toString().slice(0, 6))
         .replaceAll("{{AMOUNT}}", String(amount))
         .replaceAll("{{BID}}", bid)
