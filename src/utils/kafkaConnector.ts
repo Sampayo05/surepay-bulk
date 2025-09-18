@@ -3,6 +3,7 @@ import {Kafka, logLevel, EachMessagePayload} from "kafkajs";
 import {logger} from "../configs/logger";
 import {subscribeToZeroRating} from "./surepay";
 import {subscribeToLifecycle} from "./surepay";
+import {dailyTraitement} from "./surepay";
 import utilities from "./utilities";
 
 interface DWHRecord {
@@ -10,6 +11,13 @@ interface DWHRecord {
     updateComments: string;
     msisdns: string[];
 }
+
+interface RembourseRecord {
+    status: number;
+    statusComments: string;
+    mobile: string[];
+}
+
 
 const BATCH_SIZE = 500;
 const FLUSH_MS = 5000;
@@ -172,3 +180,4 @@ export async function defaultKafkaConnector(): Promise<void> {
         started = false;
     }
 }
+
