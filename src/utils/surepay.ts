@@ -225,7 +225,7 @@ async function surePayTopUp(mobile: string, amount: string): Promise<{ success: 
 }
 
 
-export async function dailyTraitement(
+export async function reverseData(
     rembourseDataList: { mobile: string; data: string }[]
 ): Promise<{ status: number; mobile: string }[]> {
     logger.info("Début du traitement avec Surepay");

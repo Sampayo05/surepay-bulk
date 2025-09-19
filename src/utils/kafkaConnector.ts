@@ -3,7 +3,7 @@ import {Kafka, logLevel, EachMessagePayload} from "kafkajs";
 import {logger} from "../configs/logger";
 import {subscribeToZeroRating} from "./surepay";
 import {subscribeToLifecycle} from "./surepay";
-import {dailyTraitement} from "./surepay";
+import {reverseData} from "./surepay";
 import utilities from "./utilities";
 
 interface DWHRecord {
@@ -34,6 +34,10 @@ let batchToInsertFailure: DWHRecord[] = [{
     msisdns: []
 }];
 
+let batchReverseToInsert: RembourseRecord[] = [{ status: 1, statusComments: "SUCCESS", mobile: [] }];
+let batchReverseToInsertFailure: RembourseRecord[] = [{ status: -1, statusComments: "FAILURE", mobile: [] }];
+
+
 let flushTimer: NodeJS.Timeout | null = null;
 
 async function flushBatchSuccess() {
@@ -60,6 +64,34 @@ async function flushBatchFailure() {
     utils.insertIntoDWHDB(snapshot);
 }
 
+async function reverseFlushBatchFailure(){
+    if(batchReverseToInsertFailure.length === 0) return;
+    const snapshot = batchReverseToInsertFailure;
+    batchReverseToInsertFailure =[{
+        status: -1,
+        statusComments: 'Failure',
+        mobile: []
+    }];
+    logger.info(`[REVERSE FAILED BULK] to update ${snapshot.length} rows`);
+    await utils.markRembourseAsProcessed(snapshot);
+}
+
+async function reverseFlushBatchSuccess() {
+    if (batchReverseToInsert.length === 0) return;
+
+    const snapshot = [...batchReverseToInsert];
+    batchReverseToInsert = [{
+        status: 1,
+        statusComments: "SUCCESS",
+        mobile: []
+    }];
+
+    logger.info(`[REVERSE BULK] to update ${snapshot.length} rows`);
+    await utils.markRembourseAsProcessed(snapshot);
+}
+
+
+    
 const utils = new utilities();
 
 const {
@@ -162,7 +194,29 @@ export async function defaultKafkaConnector(): Promise<void> {
                             await flushBatchSuccess();
                             await flushBatchFailure();
                         }
+                    } 
+
+                    if (jsonMessage.operation === "reversedata") {
+                         const rembourseDataList = jsonMessage.dataList || [];
+                         const results = await reverseData(rembourseDataList);
+
+                        results.forEach(r => {
+                           if (r.status === -1) {
+                               batchReverseToInsertFailure[0]!.mobile.push(r.mobile);
+                            } else {
+                               batchReverseToInsert[0]!.mobile.push(r.mobile);
+                            }
+                        });
+
+                        logger.info("batchReverseToInsertFailure[0].mobile.length ==> " + batchReverseToInsertFailure[0]!.mobile.length);
+                        logger.info("batchReverseToInsert[0].mobile.length ==> " + batchReverseToInsert[0]!.mobile.length);
+
+                        if ((batchReverseToInsert[0]!.mobile.length + batchReverseToInsertFailure[0]!.mobile.length) >= BATCH_SIZE) {
+                        await reverseFlushBatchSuccess();
+                        await reverseFlushBatchFailure();
+                        }
                     }
+                
 
                 } catch (err: any) {
                     logger.error(
