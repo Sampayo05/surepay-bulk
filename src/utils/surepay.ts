@@ -159,14 +159,14 @@ export async function subscribeToLifecycle(
     }
 }
 
-const SUREPAY_URL = process.env.SUREPAY_URL || "http://10.2.1.1:8081/ecgs/gateway";
+const SUREPAY_URL = process.env.SUREPAY_URL || "http://10.178.233.68:8081/extio_servlet/gateway";
 
 function buildSurepayXml(mobile: string, transId: string, amount: string | number, bid: string): string {
     return `<!DOCTYPE GatewayRequest SYSTEM "http://10.2.1.1:8081/ecgs/dtd/gateway.dtd">
 <GatewayRequest>
    <RequestHeader version="{{SUREPAY_VERSION}}"/>
    <SubscriberAccountInfo>
-      <SubscriberID>${mobile}</SubscriberID>
+      <SubscriberID>{{mobile}}</SubscriberID>
    </SubscriberAccountInfo>
    <QueryDataRequest OP="A" Action="IMOM" IMOMCommand="SCB:EBUCKET,MOBILE=${mobile},BUCKETSOURCEID=${bid},AMOUNT=${amount},TRANS_ID=${transId},IDTYPE=S"/>
 </GatewayRequest>`;
